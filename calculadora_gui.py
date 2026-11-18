@@ -43,11 +43,17 @@ def apagar_ultimo():
 
 
 historico_operacoes = []
+LIMITE_HISTORICO = 50
 
 
 def adicionar_ao_historico(operacao):
     historico_operacoes.append(operacao)
     historico_lista.insert(tk.END, operacao)
+
+    if len(historico_operacoes) > LIMITE_HISTORICO:
+        historico_operacoes.pop(0)
+        historico_lista.delete(0)
+
     historico_lista.see(tk.END)
 
 
