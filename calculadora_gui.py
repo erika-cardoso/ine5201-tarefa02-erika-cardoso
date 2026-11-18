@@ -56,51 +56,58 @@ def limpar_historico():
     historico_lista.delete(0, tk.END)
 
 
+def avaliar_expressao(expressao):
+    if not expressao or not re.fullmatch(r"[0-9+\-*/(). ]+", expressao):
+        raise ValueError
+
+    if any(
+        expressao[i] in "+-*/" and expressao[i + 1] in "+-*/"
+        for i in range(len(expressao) - 1)
+    ):
+        raise ValueError
+
+    arvore = ast.parse(expressao, mode="eval")
+
+    def avaliar(no):
+        if isinstance(no, ast.Expression):
+            return avaliar(no.body)
+        if isinstance(no, ast.Constant) and isinstance(no.value, (int, float)):
+            return float(no.value)
+        if isinstance(no, ast.UnaryOp) and isinstance(no.op, (ast.UAdd, ast.USub)):
+            valor = avaliar(no.operand)
+            return valor if isinstance(no.op, ast.UAdd) else -valor
+        if isinstance(no, ast.BinOp):
+            esquerda = avaliar(no.left)
+            direita = avaliar(no.right)
+            if isinstance(no.op, ast.Add):
+                return esquerda + direita
+            if isinstance(no.op, ast.Sub):
+                return esquerda - direita
+            if isinstance(no.op, ast.Mult):
+                return esquerda * direita
+            if isinstance(no.op, ast.Div):
+                return esquerda / direita
+        raise ValueError
+
+    return avaliar(arvore)
+
+
+def formatar_resultado(resultado):
+    if resultado.is_integer():
+        return str(int(resultado))
+    return str(resultado)
+
+
 # Função para calcular
 def calcular(expressao):
     try:
-        if not expressao or not re.fullmatch(r"[0-9+\-*/(). ]+", expressao):
-            raise ValueError
-
-        if any(
-            expressao[i] in "+-*/" and expressao[i + 1] in "+-*/"
-            for i in range(len(expressao) - 1)
-        ):
-            raise ValueError
-
-        arvore = ast.parse(expressao, mode="eval")
-
-        def avaliar(no):
-            if isinstance(no, ast.Expression):
-                return avaliar(no.body)
-            if isinstance(no, ast.Constant) and isinstance(no.value, (int, float)):
-                return float(no.value)
-            if isinstance(no, ast.UnaryOp) and isinstance(no.op, (ast.UAdd, ast.USub)):
-                valor = avaliar(no.operand)
-                return valor if isinstance(no.op, ast.UAdd) else -valor
-            if isinstance(no, ast.BinOp):
-                esquerda = avaliar(no.left)
-                direita = avaliar(no.right)
-                if isinstance(no.op, ast.Add):
-                    return esquerda + direita
-                if isinstance(no.op, ast.Sub):
-                    return esquerda - direita
-                if isinstance(no.op, ast.Mult):
-                    return esquerda * direita
-                if isinstance(no.op, ast.Div):
-                    return esquerda / direita
-            raise ValueError
-
-        resultado = avaliar(arvore)
+        resultado = avaliar_expressao(expressao)
+        resultado_texto = formatar_resultado(resultado)
 
         # Mostrar o resultado
         display.delete(0, tk.END)
-
-        if resultado.is_integer():
-            resultado = int(resultado)
-
-        display.insert(tk.END, str(resultado))
-        adicionar_ao_historico(f"{expressao} = {resultado}")
+        display.insert(tk.END, resultado_texto)
+        adicionar_ao_historico(f"{expressao} = {resultado_texto}")
 
     except ZeroDivisionError:
         display.delete(0, tk.END)
@@ -215,4 +222,5 @@ tk.Button(
 
 
 # Iniciando a interface
-janela.mainloop()
+if __name__ == "__main__":
+    janela.mainloop()
